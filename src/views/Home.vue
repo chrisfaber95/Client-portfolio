@@ -1,269 +1,169 @@
 <template>
-  <div class="home">
-	<div class="shelfList" id="shelfs" v-if="rowamount > 0">
-		<div class="shelf" :style="{'height': 100/rowamount+'%'}" v-for="(n, index) in rowamount" v-bind:key="rowamount+'shelf'+index+'-'+activeDepartment" ref="shelf">
-			<Shelfunit v-bind:row=n ref="shelfing" v-bind:key="rowamount+'x'+index"/>
-		</div>
-	</div>
-	<Departments />
-	<hr />
-	<div class="shoppingcart">
-		<Shoppingcart />
-	</div>
+    <div class="home" :class="path == '/favorites' ? 'favorites' : ''" :key="path">
+    <div class="shelf" :class="[shelfStyle != 0 ? 'combined-category' : '']">
+        <Shelfunit  v-if="shelfStyle == 0"/>
+        <ShelfOldStyle v-if="shelfStyle == 1"/>
+        <ShelfPicnicStyle v-if="shelfStyle == 2"/>
+    </div>
+    <div class="bottom-shelf">
+        <Departments  v-if="shelfStyle == 0 || shelfStyle == 1 || shelfStyle == 2"
+            @goToProduct="(callback) => {}"/>
+        <div class="shoppingcart">
+            <Shoppingcart />
+        </div>
+    </div>
+    <!--<NoAccess />-->
   </div>
 </template>
 
-<script>
-// @ is an alias to /src
-import Shoppingcart from '@/components/Shoppingcart.vue'
-import Shelfunit from '@/components/Shelfunit.vue'
-import Departments from '@/components/Departments.vue'
+<script setup>
+import NoAccess from '@/components/Basics/NoAccess.vue'
+import { reactive, onMounted, computed} from 'vue';
+import Shoppingcart from '@/components/shopPage/ShoppingCart.vue'
+import Shelfunit from '@/components/shopPage/ShelfUnit1.vue'
+import ShelfOldStyle from '@/components/shopPage/ShelfOldStyle1.vue'
+import ShelfPicnicStyle from '@/components/shopPage/ShelfPicnicStyle1.vue'
+import Departments from '@/components/shopPage/Departments1.vue'
+import router from '@/router';
+import { useStore } from 'vuex'
 import {HTTP} from '@/assets/scripts/http-common.js';
+import auth from '@/assets/scripts/auth';
+import {VueSimpleAlert as vAlert} from 'vue3-simple-alert'
+
+const store = useStore()
+
+onMounted(() =>{
+  /*  if(store.getters['shopsettings/getShelfStyle'] != localStorage.getItem('shoptype')){
+        store.commit('shopsettings/changeShelfStyle', localStorage.getItem('shoptype') || 0)
+        store.commit('location/changeDepartment', 0)
+    }*/
+    if(router.currentRoute.value.query.return == 'payment'){
+        vAlert.alert(
+            `Bedankt voor uw bestelling bij Coop Lubbers Online. U krijgt spoedig een email over uw bestelling.`,
+            ``,
+            'info',
+            {
+                confirmButtonText: 'OK',
+                confirmButtonColor: '#F58320',
+                cancelButtonColor: '#e4e4e4',
+                timer: 5000
+            }
+        ).then(()=>{
+            const currentRoute = router.currentRoute.value
+            const newRoute = {
+                path: currentRoute.path,
+                params: currentRoute.params,
+                query: {}
+            }
+            router.replace(newRoute)
+        })
+    }
+    getDepartments()
+})
+
+    const state = reactive({
+        publicPath: process.env.BASE_URL,
+        currentPage: router.currentRoute.value.path
+    })
+    const klantenkaart = computed(() => {
+      return localStorage.getItem('klantenkaart')
+    })
+    const path = computed(() =>{
+        return router.currentRoute.value.path
+    })
+
+    const shelfStyle = computed(() => { return store.getters['shopsettings/getShelfStyle']})
+
+    const currentDepartment = computed(() => { return store.getters['location/getCurrentDepartment']})
+
+    const availableDepartments = computed(() => { return store.getters['location/getAvailableDepartments']})
+
+    function getDepartments(){
+        const params = {
+            'visible': 1
+        }
+        HTTP.get(`departments`, {params})
+        .then((response) => {
+            var departments = response.data
+            if(!localStorage.getItem('user_id')) departments.shift()
+            if(localStorage.getItem('dob')){
+                if(!auth.isNotUnderaged()){
+                    var deps = departments.filter(e => e.nix18 !== true)
+                    departments = deps
+                }
+            }
+            store.commit('location/changeAvailableDepartment', departments)
+            if(shelfStyle.value == 0){
+                if(currentDepartment.value == null){
+                    store.commit('location/changeDepartment', departments[0])
+                    if(store.getters['shopsettings/getLoggedIn']){
+                        getFavoritesDep()
+                    }
+                    else{
+                        store.commit('location/changeDepartment', departments[0])
+                    }
+                }
+            }
+            if(shelfStyle.value != 0){
+                store.commit('location/changeDepartment', 0)
+                if(currentDepartment.value == null){
+                    store.commit('location/changeDepartment', 0)
+                    if(store.getters['shopsettings/getLoggedIn'] && state.currentPage == '/favorites'){
+                        store.commit('location/changeDepartment', departments[0])
+                    }
+                }
+            }
+            if(path.value == '/favorites'){
+                store.commit('location/changeDepartment', departments[0])
+            }
+            if(shelfStyle.value == 0){
+                if(!isObject(currentDepartment.value)){
+                    store.commit('location/changeDepartment', departments[0])
+                }
+            }
+        })
+        .catch((e) => {
+            console.log(e)
+        })
+    }
 
 
-export default {
-  name: 'home',
-  components: {
-	Shoppingcart,
-	Shelfunit,
-	Departments
-  },
-	data: function () {
-		return {
-			rowSize: '',
-			activeDepartment: null,
-			products: null,
-			searchProduct: '',
-			settings: null
+    function isObject(variable) {
+        return Object.prototype.toString.call(variable) === '[object Object]';
+    }
+
+
+    function getFavoritesDep(){
+		let params = {}
+		params = {
+			stock: 1,
+			customer_id: localStorage.getItem('user_id')
 		}
-	},
-	methods: {
-		changeActiveDepartment: function (){
-			try{
-				for(var i = 0; i < this.$refs.shelfing.length; i++){
-					this.$refs.shelfing[i].resetScroll();
-					this.$refs.shelfing[i].getProducts(this.activeDepartment);
-				}
+		HTTP.get(`customer_favorites`, {params})
+		.then((response) => {
+			if(response.data.length < 15){
+				store.commit('location/changeDepartment', availableDepartments.value[1])
 			}
-			catch(e){
-				console.log(e)
-			}
-			
-		},
-		goToProduct: function(item){
-			try{
-				this.$store.commit('updateDepartment', item.categoryname1)
-				for(var i = 0; i < this.$refs.shelfing.length; i++){
-					this.scrollTo(item.ean);	
-				}
-			}
-			catch(e){
-				console.log(e)
-			}
-		},
-		scrollTo: function(item){			
-			setTimeout(function () {					
-				try{
-					document.getElementById(item).scrollIntoView({
-						behavior: "smooth", block: 'nearest', inline: 'start' 
-					});
-					document.getElementById(item).classList.add('active-product')
-					setTimeout(() => {
-						document.getElementById(item).classList.remove('active-product')
-					}, 10000);
-				}
-				catch(e){
-					console.log(e)
-				}
-			}, 1000);
-		},
-		getProducts: function(norow){
-			var active = this.activeDepartment
-			var prodlist = null;
-			HTTP.get('product', {params: {dep: active, row: norow -1, app: 3}})
-			.then((response) => {
-				prodlist = response.data.docs
-				return prodlist;
-			})
-			.catch((errors) => {
-				console.log(errors)
-				return prodlist;
-			})
-		},
-		chunkArray: function(myArray, chunk_size){
-			var results = [];
-			
-			while (myArray.length) {
-				results.push(myArray.splice(0, chunk_size));
-			}
-			
-			return results;
-		},
-		changeRowcount: function(amount){
-			if(amount != this.rowSize){			
-				let old = this.rowSize
-				this.rowSize = amount
-				var ref = this.$refs.shelf.slice(Math.max(this.$refs.shelf.length - (this.$refs.shelf.length - amount), 0))
-				for(var j = 0; j < ref.length; j++){
-					ref[j].style.visibility = "hidden";
-				}
-				for(var j = 0; j < this.$refs.shelf.length; j++){
-					var productsize = 100/amount + "%"
-					this.$refs.shelf[j].style.height = productsize;
-					this.$refs.shelfing[j].setProductSize(amount);				
-				}
-				if(old <= this.rowSize){
-					setTimeout(()=> {					
-						try{
-							for(var i = 0; i < this.rowSize; i++){
-								this.$refs.shelfing[i].setSubDepartment();
-								this.$refs.shelfing[i].setProductSize(this.rowSize);		
-								this.$refs.shelfing[i].getProducts(this.activeDepartment);
-							}
-						}
-						catch(e){
-							console.log(e)
-						}
-					}, 100);
-					setTimeout(function () {					
-						try{						
-							this.addProds()
-						}
-						catch(e){
-							console.log(e)
-						}
-					}, 300);
-				}
-			}
-		},
-		addProds: function(){			
-			for(var j = 5; j > this.rowSize; j--){
-				var active = this.activeDepartment
-				var prod = []
-				const self = this
-				HTTP.get('product', {params: {dep: active, row: j -1, app: 3}})
-				.then((response) => {
-					prod = JSON.stringify(response.data)
-					const prodarray = JSON.parse(prod).docs
-					const prods = [];			
-					for (var i = 0; i < prodarray.length; i += Math.floor(prodarray.length/self.rowSize)){
-						prods.push(prodarray.slice(i, i + Math.floor(prodarray.length/self.rowSize)));
-					}
-					for(var i = 0; i < this.rowSize; i++){
-						self.$refs.shelfing[i].addProductList(prods[i]);
-					}
-				})
-				.catch((errors) => {
-					console.alert(errors)
-				})
-			}
-		}
-	},
-	created(){	
-	//	this.getDepartments();
-	},
-	mounted(){	
-	},
-	computed: {
-		filteredDepartments:function()
-		{	
-			const unique = this.departments
-				.map(e => e['slug'])
-
-			// store the keys of the unique objects
-			.map((e, i, final) => final.indexOf(e) === i && i)
-
-			// eliminate the dead keys & store unique objects
-			.filter(e => this.departments[e]).map(e => this.departments[e]);
-			var uniqueDepartments = unique.sort(function(a, b){
-				var keyA = a.slug,
-					keyB = b.slug;
-					// Compare the 2 dates
-					if(keyA < keyB) return -1;
-					if(keyA > keyB) return 1;
-					return 0;
-				});
-			return uniqueDepartments
-		},
-		
-		filteredSubDepartments:function()
-		{					
-			return this.subdepartments
-		},
-		rowamount: function(){
-			return this.rowSize
-		}		
-	},
-	watch:{
-		'$store.state.screenorientation':{
-			immediate: true,
-			deep: true,
-			handler(){				
-		//			this.changeOr(this.$store.state.screenorientation)
-			}
-		},		
-		'$store.state.rowsize':{
-			immediate: true,
-			deep: true,
-			handler(){			
-				this.rowSize = this.$store.state.rowsize
-				//this.changeRowcount()
-			}
-		},				
-		'$store.state.department':{
-			immediate: false,
-			deep: true,
-			handler(){				
-				this.activeDepartment = this.$store.state.department
-				this.changeActiveDepartment()
-			}
-		},
-		'$store.state.productsLoaded':{
-			immediate: true,
-			deep: true,
-			handler(){				
-				if(this.$store.state.productsLoaded){
-					this.addProds()
-				}
-			}
-		},
-	},
-	metaInfo: {
-		meta: [
-			{ name: 'HandheldFriendly', content: "true" }
-		]
+		})
+		.catch((err) => {
+			console.log(err)
+		})
 	}
-}
+
 </script>
 
 <style scoped>
 .shelf{
-	position: relative;
-	white-space: nowrap;
-}
-.shelfList > .shelf:first-child{
-	padding-top: 0px;
-}
-.shelfList{
-	height: 80%;
-	overflow-x: scroll;
+	height: 82%;
 	overflow-y: hidden;
-	padding-bottom: 5px;
-	/*background-color: #f9f9f9;*/
-	display: flex;
-    flex-direction: column;
-    justify-content: space-between;
 }
-.shoppingCart{
-    background-color: #FFFFFF;
-    width: var(--app-width);
-    border-top-left-radius: 50px;
-    border-top-right-radius: 50px;
-    border: 1px solid #111111;
+
+.shelf.combined-category{
+	height: 82%;
 }
-.departmentList{
-	width: 100%;
-	overflow-x: scroll;
+
+.bottom-shelf .departmentList{
+    width: calc(100% - 10px);
 	overflow-y: hidden;
 	display: inline-flex;
 	white-space: nowrap;
@@ -275,13 +175,7 @@ export default {
     align-content: center;
     flex-wrap: nowrap;
     flex-direction: row;
-}
-.departmentList{
-	/*background-color: #ffa500ab;
-	background-color: rgb(187 187 187 / 67%);
-    background: -webkit-gradient(linear, left top, left bottom, from(#d48700ab),color-stop(13%, #ec9600ab),color-stop(85%, #ec9600ab),to(#f79c00ab));
-    background: linear-gradient(to bottom, #d48700ab 0%,#ec9600ab 13%,#ec9600ab 85%,#f79c00ab 100%);*/
-	height: 7%;	
+    height: 90%;
     box-shadow: 3px 4px 3px 0px rgba(0,0,0,0.3);
 }
 .departments, .subDepartments{
@@ -295,32 +189,6 @@ export default {
 	border-radius: 10px;	
     box-shadow: 4px 5px 4px 0px rgba(0,0,0,0.4);
 }
-.departments span{
-	font-size: 0.9rem;
-	padding: 2px
-}
-.subdeplist{
-	position: absolute;
-    overflow-x: hidden;
-    overflow-y: scroll;
-    white-space: nowrap;
-    border-bottom: 2px solid #666666;
-    border-top: 2px solid #666666;
-    border-bottom-left-radius: 5px;
-    border-bottom-right-radius: 5px;
-    bottom: 15%;
-    background-color: orange;
-    width: 50vw;
-    max-height: 40vw;
-    right: 5px;
-    border-radius: 6px;
-    border: 1px solid #cccccc;
-    -webkit-box-shadow: 4px 5px 4px 0px rgba(0,0,0,0.4);
-    box-shadow: 4px 5px 4px 0px rgba(0,0,0,0.4);
-}
-.selectedDep{
-	background-color: var(--header-color);
-}
 .subDepartments{
 display: block;
     max-width: 100%;
@@ -328,14 +196,84 @@ display: block;
 }
 .shoppingcart{
 	height: 12%;
+    position: relative;
 }
 hr {
     margin-top: 0.5rem;
     margin-bottom: 0.5rem;
 }
+
+.bottom-shelf{
+    width: 100%;
+    height: 18%;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    align-items: stretch;
+}
+.bottom-shelf .departmentList{
+    height: 35%;
+}
+.bottom-shelf .shoppingcart{
+    height: 65%;
+}
+
+
+
+
 @media screen and (orientation: landscape) {
   .shelfList {
     height: unset;
   }
+}
+
+@media only screen and (min-height: 500.98px) and (orientation: landscape) {
+    .shelf{
+        height: 91%;
+    }
+
+    .shelf.combined-category{
+        height: 91%;
+    }
+    .bottom-shelf{
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr;
+        height: 9%;
+        grid-gap: 5px;
+    }
+    .bottom-shelf .departmentList{
+        grid-column: 1;
+        height: 100%;
+        
+    border: 1px solid #111111;
+    border-bottom: 0;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    border-bottom-left-radius: unset;
+    border-bottom-right-radius: unset;
+    padding-left: 5px;
+    padding-right: 5px;
+    
+    width: calc(100% - 10px);
+    }
+
+    .bottom-shelf .shoppingcart{
+        grid-column: 2;
+        height: 100%;
+    }
+}
+@media only screen and (min-width: 500.98px) and (orientation: portrait) {
+    .shelf{
+        height: 87%;
+    }
+
+    .shelf.combined-category{
+        height: 87%;
+    }
+    .bottom-shelf{
+        height: 13%;
+    }
 }
 </style>

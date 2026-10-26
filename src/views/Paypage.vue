@@ -5,8 +5,8 @@
 
 <script>
 import router from "../router"
-import cart from '../cart'
-import auth from '@/assets/scripts/auth';
+//import cart from '../cart'
+//import auth from '@/assets/scripts/auth';
 import {HTTP} from '@/assets/scripts/http-common.js';
 
 export default {
@@ -21,27 +21,28 @@ export default {
 	},
 	methods: {
 		confirmOrder: function(){
+
 			var data = {
-				  order_id: this.$route.params.orderid,
-				  user: 0,				  
-				}
-				if(data.order_id == null){
-					alert("Order vergeten");
-				}
-				else{
-					HTTP.put('order/'+data.order_id, data)
-					.then((response) => {
-						if(response.data.docs._links){
-							window.location.href = response.data.docs._links.checkout.href
-						}
-						else{
-							router.push('/')
-						}
-					})
-					.catch((errors) => {
-						console.log(errors)
-					})
-				}
+				type: "Onlinepayment"
+			}			
+			if(this.$route.params.orderid == null){
+				alert("Order vergeten");
+			}
+			else{
+				HTTP.put(`/order/${this.$route.params.orderid}`, data)
+				.then((response) =>{
+					if(response.data.docs?._links){
+						window.location.href = response.data.docs._links.checkout.href
+					}
+					else{
+						router.push('/')
+					}
+				})
+				.catch((errors) => {
+					alert("Er ging iets verkeerd")
+					console.log(errors)
+				})
+			}
 		}
 	},
 	created(){
