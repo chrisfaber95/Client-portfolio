@@ -1,4 +1,4 @@
-# shopappv2
+# Coop Lubbers Online
 
 ## Project setup
 ```

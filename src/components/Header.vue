@@ -1,52 +1,70 @@
 <template>
 	<div class="header">	
-		<div class="logo">
-			<router-link to="/">
-				<img class="img-fluid" :src="`${publicPath}img/logo-supermarkt-coop.png`"/>
+		<div class="logo header-col">
+			<router-link :to="'/login'" v-if="!klantenkaart">
+				<div class="header-button">
+					Inloggen
+				</div>
 			</router-link>
-			</div>
-		<div class="ad-reserve"></div>
-		<div id="menu-btn" @click="fade()">
+			<router-link :to="'/loyalty_card'" v-if="klantenkaart">
+				<div class="header-button">
+					QR Code
+				</div>
+			</router-link>
+		</div>
+		<div class="header-shops header-col">
+			<router-link :to="'/spaaracties'">
+				<div class="header-button">
+					Sparen
+				</div>
+			</router-link>
+		</div>
+		<div id="menu-btn" class="header-button header-col" @click="fade()">
 			Menu
 		</div>
-		<div class="modaloverlay" v-if="modalOpened" @click="fade()"></div>						
-		<transition name="fade" v-on:enter="enter">	
-			<Navigation v-if="modalOpened"/>
+		<div class="modal-overlay" v-if="state.modalOpened" @click="fade()"></div>						
+		<transition name="fade" v-on:close="enter">	
+			<Navigation v-if="state.modalOpened" @fading="fade()"/>
 		</transition>
-	</div>
+	</div> 
 </template>
 
-<script>
+<script setup>
+import { reactive, defineProps, computed, defineEmits} from 'vue'
+import {useRoute} from 'vue-router'
+import auth from '@/assets/scripts/auth'
+import { useStore } from 'vuex'
 import Navigation from '@/components/Navigation.vue'
-export default {
-	components: {
-		Navigation
-	},
-	data: function () {
-		return {
-			modalOpened: false,
-			publicPath: process.env.BASE_URL,
-			title: ""
-		}
-	},
-	methods: {
-		fade() {
-			this.modalOpened = !this.modalOpened
-		},
-		enter() {
-			setTimeout(function() {
-				this.modalOpened = false;
-				}, 1500);
-		},
-	},
-	created(){
-	},
-	mounted(){
+
+
+const store = useStore()
+	const state = reactive({  
+		modalOpened: false,
+		publicPath: process.env.BASE_URL,
+		title: ""
+	})
 	
+	function fade() {
+		state.modalOpened = !state.modalOpened
 	}
-}
+	
+	function enter() {
+		setTimeout(() => {
+			state.modalOpened = false;
+			}, 1500);
+	}
+
+
+	
+    const klantenkaart = computed(() => {
+		return store.getters['shopsettings/getLoggedIn']
+    }, {immediate: true, deep: true})
+
 </script>
 <style scoped>
+.modal-overlay{
+	background: #aaaaaa55;
+}
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.5s
@@ -58,23 +76,34 @@ export default {
   opacity: 0
 }
 .header{
-	display: inline-flex;
 	height: 6%;	
 	width: 100%;
-	background-color: var(--header-color); 
-	padding: 5px 5px 0px 5px;
+	background-color: var(--header-color);
 	border-bottom: 2px solid rgba(0,0,0,0.6);
-	justify-content: space-between;
+    grid-template-columns: 25% 25% 25%;
+    grid-gap: 5%;
+	grid-auto-flow: column;
+    display: grid;
+    padding-left: 8%;
+    position: fixed;
+    z-index: 12;
 }
 
+.header-col{
+	max-height: 100%;
+	align-self: center;
+}
+
+.header-col a{
+	text-decoration: none;
+}
 
 .logo{
-	height: 100%;
 }
 .logo img{
-	width: auto;
+	max-width: 100%;
 	max-height: 100%;
-	height: unset;
+	height: auto;
 }
 .title{
 	display: flex;
@@ -88,14 +117,12 @@ export default {
 	margin-right: auto;
     color: var(--header-text-color);
 }
-#menu-btn{
+.header-button{
 	display: flex;
     align-items: center;
     justify-content: center;
-    height: 85%;
     padding: 5px;	
 	border-radius: 5px;
-	margin-left: -5px;
 	background: #ffffff;
 	-webkit-box-shadow: 6px 10px 5px 0px rgba(0,0,0,0.75);
     -moz-box-shadow: 6px 10px 5px 0px rgba(0,0,0,0.75);
@@ -104,12 +131,9 @@ export default {
 	font-weight: 700;
 }
 
-@media screen and (orientation: landscape) {
+@media only screen and (min-height: 500.98px) and (orientation: landscape) {
 	.header{
-		max-height: 50px;
-	}
-	.logo{
-		height: unset;
+		height: 8%;
 	}
 }
 </style>
