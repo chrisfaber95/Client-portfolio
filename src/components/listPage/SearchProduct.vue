@@ -4,7 +4,7 @@
 			<div class="search-img" @click="state.productModalOpened = !state.productModalOpened">
 
 				<img class="img-fluid " 
-				v-bind:src="`https://www.cooplubbers.nl${product.product_information.imgurl}`" 
+				v-bind:src="`${product.product_information.imgurl}`" 
 				/>
 			</div>
 			<div class="information">

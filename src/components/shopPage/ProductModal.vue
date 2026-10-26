@@ -177,7 +177,7 @@
 				</div>
 			</div>
 			<div class="modal-img">
-				<img class="img-fluid" v-bind:src="`https://www.cooplubbers.nl${product.product_information?.imgurl}` || ''"/>			
+				<img class="img-fluid" v-bind:src="`${product.product_information?.imgurl}` || ''"/>			
 				<div class="favorite" :class="{'inactive' : !loggedIn}">
 					<input type="checkbox" class="star"  v-model="state.isFavorite" @click="state.isFavorite ? removeFavorite() : addToFavorite()"/>
 				</div>

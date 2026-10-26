@@ -8,7 +8,7 @@
                 <v-lazy-image 
                     class="img-fluid" 
                     @error="removeProduct()" 
-                    v-bind:src="`https://www.cooplubbers.nl${product.product_information?.imgurl}` || ''" 
+                    v-bind:src="`${product.product_information?.imgurl}` || ''" 
                     :intersection-option="state.lazyOptions " />
 			</div>
 			<div class="information">

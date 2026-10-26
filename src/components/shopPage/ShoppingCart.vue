@@ -22,7 +22,7 @@
 				<div class="cartitem" v-for="item in shoppingCart" v-bind:key="item.product.id">
 					<div class="grid-item image"
 						@click="state.productModalOpened = item.product;">
-						<img :src="`https://www.cooplubbers.nl${item.product.product_information.imgurl}`" v-if="item.product.product_information.imgurl">
+						<img :src="`${item.product.product_information.imgurl}`" v-if="item.product.product_information.imgurl">
 					</div>
 					<div class="itemname" @click="state.productModalOpened = item.product;">
 						<span class="productname" v-html="item.product.product_information.title"></span>
