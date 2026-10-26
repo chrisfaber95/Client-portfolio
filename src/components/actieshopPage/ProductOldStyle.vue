@@ -11,7 +11,7 @@
             :intersection-option="() => state.lazyOptions "/>
            <div class="stamp-amount">
                 <!--<img class="backimage" :src="`/img/acties/price_back.png`" />-->
-                <img class="front-image" :src="`https://www.cooplubbers.nl/api/back-images/acties/${actieproduct.stamps_cost}-donar-stamp.png`" />
+                <img class="front-image" :src="`/api/back-images/acties/${actieproduct.stamps_cost}-donar-stamp.png`" />
             </div>
         </div>
         <div class="information">

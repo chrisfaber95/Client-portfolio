@@ -12,7 +12,7 @@
                         }"
                     >
                         <div class="front-image">
-                            <img :src="`https://www.cooplubbers.nl${actie.front_imgurl}`" />
+                            <img :src="`${actie.front_imgurl}`" />
                         </div>
                     </div>
                     <div 
@@ -106,7 +106,7 @@
                         }"
                     >
                         <div class="front-image">
-                            <img :src="`https://www.cooplubbers.nl${actie.back_imgurl}`" />
+                            <img :src="`${actie.back_imgurl}`" />
                         </div>
                     </div>
                 </div>

@@ -3,7 +3,7 @@
         <div class="no-picking" v-if="picking === false">
             <div class="grid-item first"
                 @click="state.productModalOpened = item.product;">
-                <img :src="`https://www.cooplubbers.nl${item.product.product_information.imgurl}` || ''">
+                <img :src="`${item.product.product_information.imgurl}` || ''">
             </div>
             <div class="modal-overlay" v-if="state.productModalOpened">
                 <ProductModal :product="state.productModalOpened" :discount="ïsDiscounted"

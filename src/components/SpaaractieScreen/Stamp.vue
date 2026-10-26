@@ -2,7 +2,7 @@
 	<div class="stamp">
         <img class="background" :src="`${state.publicPath}img/stamp-background.png`"/>
         <div class="content">
-            <img :src="stamp ? `https://www.cooplubbers.nl/${actie.stamp_imgurl}` : `https://www.cooplubbers.nl/${actie.imgurl}`" :class="{'visible_stamp': stamp}" />
+            <img :src="stamp ? `/${actie.stamp_imgurl}` : `/${actie.imgurl}`" :class="{'visible_stamp': stamp}" />
             <img class='coin visible_stamp' :src="last ? `img/coin_exchange.png`: ``" v-if="last" style="max-width: 80%;"/>
             <div class="number" v-html="stamp_number" v-if="!stamp && !last"></div>
         </div>

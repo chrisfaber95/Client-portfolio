@@ -6,7 +6,7 @@
                 <v-lazy-image 
                     class="img-fluid" 
                     @error="removeProduct()" 
-                    v-bind:src="`https://www.cooplubbers.nl${product.product_information?.imgurl}` || ''" 
+                    v-bind:src="`${product.product_information?.imgurl}` || ''" 
                     :intersection-option="state.lazyOptions " />
             </div>
             <div class="background" @click="state.productModalOpened = !state.productModalOpened">
@@ -171,7 +171,7 @@ const isFavorite = computed(() => {
             'z-index': 999
         })
         var image = $("<img>")
-        image.attr("src", `https://www.cooplubbers.nl${product.product_information?.imgurl}`)
+        image.attr("src", `${product.product_information?.imgurl}`)
         image.css({
             width: "100%",
             height: "100%"
